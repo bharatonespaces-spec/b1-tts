@@ -60,12 +60,14 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# Copy the start script
+COPY --chown=nextjs:nodejs start.sh ./
+RUN chmod +x ./start.sh
+
 # L-02 FIX: Docker health check — without this, the orchestrator has no way to
 # verify the app and DB are actually healthy before routing traffic.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
 # L-03 FIX: Run migrations before starting the server.
-# This ensures schema changes are applied before the app receives traffic.
-# Requires 'prisma' CLI to be available — install globally or use local binary.
-CMD ["node", "server.js"]
+CMD ["sh", "./start.sh"]
