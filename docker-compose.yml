@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  b1tts:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: b1tts_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - DATABASE_URL=file:/app/prisma/prod.db
+    volumes:
+      # Mount Prisma directory to persist the SQLite database
+      - b1tts_db:/app/prisma
+      # Mount public/audio to persist generated audio files
+      - b1tts_audio:/app/public/audio
+    command: >
+      sh -c "npx prisma migrate deploy && node server.js"
+
+volumes:
+  b1tts_db:
+  b1tts_audio:
