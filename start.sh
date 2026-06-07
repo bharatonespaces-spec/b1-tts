@@ -1,5 +1,5 @@
 #!/bin/sh
 echo "Running Prisma migrations..."
-npx prisma migrate deploy --schema=./prisma/schema.prisma
+npx --yes prisma migrate deploy --schema=/app/prisma/schema.prisma
 echo "Starting Next.js..."
 node server.js

@@ -67,7 +67,7 @@ RUN chmod +x ./start.sh
 # L-02 FIX: Docker health check — without this, the orchestrator has no way to
 # verify the app and DB are actually healthy before routing traffic.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD wget -qO- http://localhost:3000/api/health || exit 1
+  CMD wget -qO- http://localhost:$PORT/api/health || exit 1
 
 # L-03 FIX: Run migrations before starting the server.
 CMD ["sh", "./start.sh"]
