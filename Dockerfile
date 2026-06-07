@@ -52,8 +52,8 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-
-USER nextjs
+# Run as root so we can write to the Railway volume
+# USER nextjs
 
 EXPOSE 3000
 
