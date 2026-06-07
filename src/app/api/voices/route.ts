@@ -26,57 +26,6 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  try {
-    const formData = await req.formData()
-    const name = formData.get("name") as string
-    const file = formData.get("file") as File
-
-    if (!name || !file) {
-      return NextResponse.json({ success: false, error: "Name and file are required" }, { status: 400 })
-    }
-
-    // C-03 FIX: Validate voice name length
-    if (name.trim().length === 0 || name.length > MAX_VOICE_NAME_LENGTH) {
-      return NextResponse.json(
-        { success: false, error: `Voice name must be between 1 and ${MAX_VOICE_NAME_LENGTH} characters` },
-        { status: 400 }
-      )
-    }
-
-    // C-03 FIX: Validate file size server-side
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      return NextResponse.json(
-        { success: false, error: `File size exceeds maximum of ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB` },
-        { status: 400 }
-      )
-    }
-
-    // C-03 FIX: Validate MIME type server-side — HTML `accept` is trivially bypassed
-    if (!ALLOWED_MIME_TYPES.has(file.type)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid file type. Only MP3, WAV, OGG, and WebM audio are allowed." },
-        { status: 400 }
-      )
-    }
-
-    // 1. Send to ElevenLabs
-    const providerVoiceId = await addVoice(name.trim(), file)
-
-    if (!providerVoiceId) {
-      return NextResponse.json({ success: false, error: "ElevenLabs API failed to return a voice ID" }, { status: 500 })
-    }
-
-    // 2. Save to database
-    const newVoice = await VoiceService.createVoice({
-      name: name.trim(),
-      providerVoiceId
-    })
-
-    return NextResponse.json({ success: true, data: newVoice })
-  } catch (error: unknown) {
-    console.error("[Voices] Create error:", error)
-    const message = error instanceof Error ? error.message : "Failed to create voice"
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
-  }
+  return NextResponse.json({ success: false, error: "Custom voice cloning is not supported with the free TTS engine." }, { status: 400 })
 }
 

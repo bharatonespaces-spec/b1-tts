@@ -44,34 +44,17 @@ export async function deleteVoice(voiceId: string): Promise<boolean> {
   return true
 }
 
-export async function generateSpeech(voiceId: string, text: string, _speed: number = 1.0): Promise<ArrayBuffer> {
-  const apiKey = process.env.ELEVENLABS_API_KEY
-  if (!apiKey) throw new Error("ELEVENLABS_API_KEY is not set")
+import { EdgeTTS } from 'node-edge-tts';
+import fs from 'fs/promises';
+import { randomUUID } from 'crypto';
+import path from 'path';
 
-  const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-    method: "POST",
-    headers: {
-      "xi-api-key": apiKey,
-      "Content-Type": "application/json",
-      "Accept": "audio/mpeg"
-    },
-    body: JSON.stringify({
-      text,
-      model_id: "eleven_monolingual_v1",
-      voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.5,
-      }
-    })
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error("ElevenLabs Generate Speech Error:", errorText)
-    throw new Error(`Failed to generate speech: ${response.statusText}`)
-  }
-
-  // ElevenLabs doesn't have a direct "speed" parameter in the core API request, but it's part of the Voice Settings or we just ignore it if it's not supported by standard models without specific SSML. For this implementation, we will pass standard voice_settings.
-  return await response.arrayBuffer()
+export async function generateSpeech(voiceId: string, text: string, speed: number = 1): Promise<Buffer> {
+  const tts = new EdgeTTS({ voice: voiceId });
+  const tempPath = path.join(process.cwd(), `temp-${randomUUID()}.mp3`);
+  
+  await tts.ttsPromise(text, tempPath);
+  const buffer = await fs.readFile(tempPath);
+  await fs.unlink(tempPath);
+  return buffer;
 }
-
