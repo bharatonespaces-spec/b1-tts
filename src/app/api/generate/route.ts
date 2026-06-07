@@ -5,8 +5,10 @@ import { randomUUID } from "crypto"
 import fs from "fs/promises"
 import path from "path"
 
-// C-02 FIX: Hard cap on input length to prevent ElevenLabs API quota exhaustion
-const MAX_CHARS = 5000
+// Unified data directory — both DB and audio live here on the persistent volume
+const AUDIO_DIR = process.env.NODE_ENV === "production"
+  ? "/app/data/audio"
+  : path.join(process.cwd(), "data", "audio")
 
 export async function POST(req: Request) {
   try {
@@ -17,10 +19,10 @@ export async function POST(req: Request) {
     }
 
     // C-02 FIX: Reject requests exceeding character limit
+    const MAX_CHARS = 5000
     if (typeof text !== "string" || text.trim().length === 0) {
       return NextResponse.json({ success: false, error: "Text must be a non-empty string" }, { status: 400 })
     }
-
     if (text.length > MAX_CHARS) {
       return NextResponse.json(
         { success: false, error: `Text exceeds maximum length of ${MAX_CHARS} characters` },
@@ -37,21 +39,14 @@ export async function POST(req: Request) {
     // 2. Generate speech via ElevenLabs
     const audioBuffer = await generateSpeech(voice.providerVoiceId, text, speed)
 
-    // 3. Save audio file to public/audio
+    // 3. Save audio file to unified data directory (persistent volume on Railway)
     const fileName = `${randomUUID()}.mp3`
-    const audioDir = path.join(process.cwd(), "public", "audio")
-
-    // Ensure directory exists
-    try {
-      await fs.access(audioDir)
-    } catch {
-      await fs.mkdir(audioDir, { recursive: true })
-    }
-
-    const filePath = path.join(audioDir, fileName)
+    await fs.mkdir(AUDIO_DIR, { recursive: true })
+    const filePath = path.join(AUDIO_DIR, fileName)
     await fs.writeFile(filePath, Buffer.from(audioBuffer))
 
-    const audioUrl = `/audio/${fileName}`
+    // Audio served via /api/audio/[filename] route (not static public/)
+    const audioUrl = `/api/audio/${fileName}`
     const title = text.split(" ").slice(0, 5).join(" ") + (text.split(" ").length > 5 ? "..." : "")
 
     // 4. Save metadata to database
@@ -62,6 +57,7 @@ export async function POST(req: Request) {
     })
 
     return NextResponse.json({ success: true, data: generatedAudio })
+
   } catch (error: unknown) {
     // H-04 FIX: Log full details server-side, return generic message to client
     console.error("[Generate] Audio generation error:", error)
